@@ -169,7 +169,7 @@ int main (int argc, char **argv) {
   }
 
   for (i=skip, j=0; i<sb.st_size; i++) { // default: skip=0
-    if (max > 0 && i > skip+max) break;
+    if (max > 0 && i+1 > skip+max) break;
 
     if (j > 0 && cmp_buffer) {
       m = 0;
