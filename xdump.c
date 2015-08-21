@@ -18,7 +18,7 @@
 #include <openssl/md5.h>
 
 int usage (char *prg) {
-  fprintf (stderr, "usage: %s [-v, -s bytes, -w bytes, -t (hex, dec), -l bytes, -m 0xAABBCCDD] file\n", prg);
+  fprintf (stderr, "usage: %s [-v, -s bytes, -w bytes, -t (hex, dec, bin), -l bytes, -m 0xAABBCCDD] file\n", prg);
   exit (-1);
 }
 
@@ -43,12 +43,17 @@ int print_data (unsigned char d_type, int data) {
     case 2:
       if (data < 0) printf ("    "); else printf ("%3d", data);
       break;
+    case 3:
+      printf ("%c", data);
+      break;
   }
 
   return 0;
 }
 
 int print_str (unsigned int *j, unsigned long *POS, unsigned char STR[], unsigned int STR_len, unsigned char d_type) {
+  if (d_type == 3) return 0;
+
   if ((*j)>0) {
     (*POS) += (*j);
     STR[(*j)] = 0;
@@ -102,6 +107,7 @@ int main (int argc, char **argv) {
       case 't':
         if (!strncasecmp (optarg, "hex", 3)) d_type = 1;
         if (!strncasecmp (optarg, "dec", 3)) d_type = 2;
+        if (!strncasecmp (optarg, "bin", 3)) d_type = 3;
         break;
       default:
         usage (*argv);
@@ -120,14 +126,18 @@ int main (int argc, char **argv) {
 
   if (verbose) fprintf (stderr, "%s\n", argv[optind]);
 
-  printf ("\n# name : %s\n", argv[optind]);
+  if (d_type != 3) {
+    printf ("\n# name : %s\n", argv[optind]);
+  }
 
   if (fstat (fd, &sb) == -1) {
     fprintf (stderr, "error: unable to stat fd\n");
     exit (-1);
   }
 
-  printf ("# size : %ld bytes\n", sb.st_size);
+  if (d_type != 3) {
+    printf ("# size : %ld bytes\n", sb.st_size);
+  }
 
   if (!sb.st_size) {
     printf ("# skipped ...\n");
@@ -140,10 +150,12 @@ int main (int argc, char **argv) {
     exit (-1);
   }
 
-  printf ("# md5  : ");
-  MD5(addr, sb.st_size, md5);
-  for (i=0; i<16; i++) printf ("%02x", md5[i]);
-  printf ("\n\n");
+  if (d_type != 3) {
+    printf ("# md5  : ");
+    MD5(addr, sb.st_size, md5);
+    for (i=0; i<16; i++) printf ("%02x", md5[i]);
+    printf ("\n\n");
+  }
 
   ds = sb.st_size;
   while (ds > 10) { ds /= 10; dl ++; }
@@ -152,7 +164,9 @@ int main (int argc, char **argv) {
     POS += skip;
   }
 
-  print_pos (dl, d_type, POS);
+  if (d_type != 3) {
+    print_pos (dl, d_type, POS);
+  }
 
   for (i=skip, j=0; i<sb.st_size; i++) { // default: skip=0
     if (max > 0 && i > skip+max) break;
@@ -170,7 +184,9 @@ int main (int argc, char **argv) {
       }
     }
 
-    if (j>0) printf (" ");
+    if (d_type != 3) {
+      if (j>0) printf (" ");
+    }
 
     print_data (d_type, addr[i]);
     
@@ -183,7 +199,9 @@ int main (int argc, char **argv) {
     }
   }
 
-  print_str (&j, &POS, STR, STR_len, d_type);
+  if (d_type != 3) {
+    print_str (&j, &POS, STR, STR_len, d_type);
+  }
 
   return 0;
 }
